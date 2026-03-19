@@ -1354,6 +1354,12 @@ var isPlaying  = false;
 var attackMs   = 400;
 var loopTimers = [];
 
+function getAttackMs() {
+  var el = document.getElementById('attackSel');
+  return el ? parseInt(el.value) : 400;
+}
+
+
 function setStatus(msg) {
   var el = document.getElementById('status');
   if (el) el.textContent = msg;
@@ -1470,7 +1476,7 @@ function schedulePhrase() {
     for (var b = 0; b < phrase.length; b++) {
       var durMs   = actMs * ((Math.floor(Math.random() * 6) + 2) / 8);
       var gain    = (Math.random() * 0.4 + 0.6) * vol;
-      var atk     = attackMs;
+      var atk     = getAttackMs();
       var x = Math.random() * 260 - 130;
       var y = Math.random() * 260 - 130;
 
@@ -1498,7 +1504,7 @@ function schedulePhrase() {
         var id = setTimeout(function() {
           if (!isPlaying) return;
           spawnDrop(note, ax, ay);
-          playNote(note, g, attackMs * 6, dur, attackMs * 6);
+          playNote(note, g, getAttackMs() * 6, dur, getAttackMs() * 6);
         }, delay);
         loopTimers.push(id);
       })(drone, voiceOffset, dDur, dGain, dx, dy);
@@ -4124,7 +4130,7 @@ function auditionPlay(player, note, vol, btnId) {
   var btn = document.getElementById(btnId);
   if (btn) { btn.classList.add('playing'); btn.textContent = '■'; }
   if (auditionTimers[btnId]) clearTimeout(auditionTimers[btnId]);
-  var atkSec = attackMs / 1000; // honour current attack setting
+  var atkSec = getAttackMs() / 1000; // honour current attack setting
   var susSec = Math.max(2.0, atkSec * 2);
   var totalSec = atkSec + susSec + atkSec;
   var now = audio.currentTime;
@@ -4557,9 +4563,11 @@ function snapshotExport() {
 }
 
 function snapshotImportTrigger() {
-  // Use whichever file input is in the currently visible sheet
-  var input = document.getElementById('snapshot-file-input') ||
-              document.getElementById('mob-snapshot-file-input');
+  // Pick the input in whichever sheet is currently visible
+  var mobSheet  = document.getElementById('mob-sheet');
+  var isMobOpen = mobSheet && mobSheet.classList.contains('open');
+  var inputId   = isMobOpen ? 'mob-snapshot-file-input' : 'snapshot-file-input';
+  var input     = document.getElementById(inputId);
   if (input) input.click();
 }
 
