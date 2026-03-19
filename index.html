@@ -3949,40 +3949,44 @@ function settingsLoad(injected) {
       s.instrument = migrateInstrumentValue(s.instrument);
       setEl('instrument', s.instrument);
       setEl('desk-instrument', s.instrument);
+      setEl('mob-instrument', s.instrument);
     }
-    if (s.key)       { setEl('key', s.key);           setEl('desk-key', s.key); }
-    if (s.mod)       { setEl('mod', s.mod);           setEl('desk-mod', s.mod); }
-    if (s.scaleType) { setEl('scaleType', s.scaleType); setEl('desk-scaleType', s.scaleType); }
+    if (s.key)       { setEl('key', s.key);           setEl('desk-key', s.key);       setEl('mob-key', s.key); }
+    if (s.mod)       { setEl('mod', s.mod);           setEl('desk-mod', s.mod);       setEl('mob-mod', s.mod); }
+    if (s.scaleType) { setEl('scaleType', s.scaleType); setEl('desk-scaleType', s.scaleType); setEl('mob-scaleType', s.scaleType); }
 
     // Feel
-    if (s.activity)  { setEl('activity', s.activity);   setEl('desk-activity', s.activity); }
-    if (s.voices)    { setEl('voices', s.voices);        setEl('desk-voices', s.voices); }
-    if (s.attackSel) { setEl('attackSel', s.attackSel);  setEl('desk-attackSel', s.attackSel); attackMs = parseInt(s.attackSel); }
+    if (s.activity)  { setEl('activity', s.activity);   setEl('desk-activity', s.activity);   setEl('mob-activity', s.activity); }
+    if (s.voices)    { setEl('voices', s.voices);        setEl('desk-voices', s.voices);        setEl('mob-voices', s.voices); }
+    if (s.attackSel) { setEl('attackSel', s.attackSel);  setEl('desk-attackSel', s.attackSel);  setEl('mob-attackSel', s.attackSel); attackMs = parseInt(s.attackSel); }
     if (s.volume)    {
       setEl('volume', s.volume);
       setEl('desk-volume', s.volume);
+      setEl('mob-volume', s.volume);
       var dvl = document.getElementById('desk-volume-val');
       if (dvl) dvl.textContent = s.volume + '%';
     }
 
     // Mix — set desk sliders + fire audio functions + update val labels
     if (s.lpf) {
-      setEl('desk-lpf', s.lpf);
+      setEl('desk-lpf', s.lpf); setEl('mob-lpf', s.lpf);
       setGlobalLpf(s.lpf);
       var el = document.getElementById('desk-lpf-val'); if (el) el.textContent = s.lpf + ' hz';
+      var el2 = document.getElementById('mob-lpf-val'); if (el2) el2.textContent = s.lpf + ' hz';
     }
     if (s.hpf) {
-      setEl('desk-hpf', s.hpf);
+      setEl('desk-hpf', s.hpf); setEl('mob-hpf', s.hpf);
       setGlobalHpf(s.hpf);
       var el = document.getElementById('desk-hpf-val'); if (el) el.textContent = s.hpf + ' hz';
+      var el2 = document.getElementById('mob-hpf-val'); if (el2) el2.textContent = s.hpf + ' hz';
     }
     if (s.reverb) {
-      setEl('reverb', s.reverb); setEl('desk-reverb', s.reverb);
+      setEl('reverb', s.reverb); setEl('desk-reverb', s.reverb); setEl('mob-reverb', s.reverb);
       setReverbAmount(s.reverb / 100);
     }
-    if (s.delayMix)   { setEl('delayMix', s.delayMix);     setEl('desk-delayMix', s.delayMix); }
-    if (s.delayRate)  { setEl('delayRate', s.delayRate);    setEl('desk-delayRate', s.delayRate); setDelayRate(s.delayRate / 1000); }
-    if (s.delayDecay) { setEl('delayDecay', s.delayDecay);  setEl('desk-delayDecay', s.delayDecay); setDelayDecay(s.delayDecay / 100); }
+    if (s.delayMix)   { setEl('delayMix', s.delayMix);     setEl('desk-delayMix', s.delayMix);   setEl('mob-delayMix', s.delayMix); }
+    if (s.delayRate)  { setEl('delayRate', s.delayRate);    setEl('desk-delayRate', s.delayRate);  setEl('mob-delayRate', s.delayRate); setDelayRate(s.delayRate / 1000); }
+    if (s.delayDecay) { setEl('delayDecay', s.delayDecay);  setEl('desk-delayDecay', s.delayDecay); setEl('mob-delayDecay', s.delayDecay); setDelayDecay(s.delayDecay / 100); }
 
     // Flow steps
     if (s.flowSteps) {
@@ -3996,49 +4000,55 @@ function settingsLoad(injected) {
     }
 
     // Chord
-    if (s.chordInstrument) { s.chordInstrument = migrateInstrumentValue(s.chordInstrument); setEl('chord-instrument', s.chordInstrument); }
-    if (s.chordInterval)   setEl('chord-interval', s.chordInterval);
+    if (s.chordInstrument) { s.chordInstrument = migrateInstrumentValue(s.chordInstrument); setEl('chord-instrument', s.chordInstrument); setEl('mob-chord-instrument', s.chordInstrument); }
+    if (s.chordInterval)   { setEl('chord-interval', s.chordInterval); setEl('mob-chord-interval', s.chordInterval); }
     if (s.chordDegs && Array.isArray(s.chordDegs)) {
       document.querySelectorAll('.chord-deg-box').forEach(function(b) {
         b.checked = s.chordDegs.indexOf(b.value) !== -1;
       });
     }
-    if (s.chordDirection) setEl('chord-direction', s.chordDirection);
-    if (s.chordOctave)    setEl('chord-octave', s.chordOctave);
+    if (s.chordDirection) { setEl('chord-direction', s.chordDirection); setEl('mob-chord-direction', s.chordDirection); }
+    if (s.chordOctave)    { setEl('chord-octave', s.chordOctave);       setEl('mob-chord-octave', s.chordOctave); }
     if (s.chordVol) {
-      setEl('chord-vol', s.chordVol);
+      setEl('chord-vol', s.chordVol); setEl('mob-chord-vol', s.chordVol);
       var el = document.getElementById('chord-vol-val'); if (el) el.textContent = s.chordVol + '%';
+      var el2 = document.getElementById('mob-chord-vol-val'); if (el2) el2.textContent = s.chordVol + '%';
     }
-    if (s.chordAttack) setEl('chord-attack', s.chordAttack);
+    if (s.chordAttack) { setEl('chord-attack', s.chordAttack); setEl('mob-chord-attack', s.chordAttack); }
     if (s.chordLpf) {
-      setEl('chord-lpf', s.chordLpf); chordSetLpf(s.chordLpf);
+      setEl('chord-lpf', s.chordLpf); setEl('mob-chord-lpf', s.chordLpf); chordSetLpf(s.chordLpf);
       var el = document.getElementById('chord-lpf-val'); if (el) el.textContent = s.chordLpf + ' hz';
+      var el2 = document.getElementById('mob-chord-lpf-val'); if (el2) el2.textContent = s.chordLpf + ' hz';
     }
     if (s.chordHpf) {
-      setEl('chord-hpf', s.chordHpf); chordSetHpf(s.chordHpf);
+      setEl('chord-hpf', s.chordHpf); setEl('mob-chord-hpf', s.chordHpf); chordSetHpf(s.chordHpf);
       var el = document.getElementById('chord-hpf-val'); if (el) el.textContent = s.chordHpf + ' hz';
+      var el2 = document.getElementById('mob-chord-hpf-val'); if (el2) el2.textContent = s.chordHpf + ' hz';
     }
 
     // Drone
     if (s.droneInstrument) {
       s.droneInstrument = migrateInstrumentValue(s.droneInstrument);
-      setEl('drone-instrument', s.droneInstrument);
+      setEl('drone-instrument', s.droneInstrument); setEl('mob-drone-instrument', s.droneInstrument);
       droneLoadInstrument(s.droneInstrument);
     }
-    if (s.droneInterval) setEl('drone-interval', s.droneInterval);
+    if (s.droneInterval) { setEl('drone-interval', s.droneInterval); setEl('mob-drone-interval', s.droneInterval); }
     if (s.droneVol) {
-      setEl('drone-vol', s.droneVol);
+      setEl('drone-vol', s.droneVol); setEl('mob-drone-vol', s.droneVol);
       var el = document.getElementById('drone-vol-val'); if (el) el.textContent = s.droneVol + '%';
+      var el2 = document.getElementById('mob-drone-vol-val'); if (el2) el2.textContent = s.droneVol + '%';
       droneGain.gain.value = parseFloat(s.droneVol) / 100;
     }
-    if (s.droneOctave) setEl('drone-octave', s.droneOctave);
+    if (s.droneOctave) { setEl('drone-octave', s.droneOctave); setEl('mob-drone-octave', s.droneOctave); }
     if (s.droneLpf) {
-      setEl('drone-lpf', s.droneLpf); droneSetLpf(s.droneLpf);
+      setEl('drone-lpf', s.droneLpf); setEl('mob-drone-lpf', s.droneLpf); droneSetLpf(s.droneLpf);
       var el = document.getElementById('drone-lpf-val'); if (el) el.textContent = s.droneLpf + ' hz';
+      var el2 = document.getElementById('mob-drone-lpf-val'); if (el2) el2.textContent = s.droneLpf + ' hz';
     }
     if (s.droneHpf) {
-      setEl('drone-hpf', s.droneHpf); droneSetHpf(s.droneHpf);
+      setEl('drone-hpf', s.droneHpf); setEl('mob-drone-hpf', s.droneHpf); droneSetHpf(s.droneHpf);
       var el = document.getElementById('drone-hpf-val'); if (el) el.textContent = s.droneHpf + ' hz';
+      var el2 = document.getElementById('mob-drone-hpf-val'); if (el2) el2.textContent = s.droneHpf + ' hz';
     }
 
     // Pan
@@ -4080,16 +4090,19 @@ function settingsLoad(injected) {
     }
     // Auto
     if (s.autoLpfHigh) {
-      setEl('autoLpfHigh', s.autoLpfHigh); setEl('desk-autoLpfHigh', s.autoLpfHigh);
+      setEl('autoLpfHigh', s.autoLpfHigh); setEl('desk-autoLpfHigh', s.autoLpfHigh); setEl('mob-autoLpfHigh', s.autoLpfHigh);
       var el = document.getElementById('desk-autoLpfHighVal'); if (el) el.textContent = s.autoLpfHigh + ' hz';
+      var el2 = document.getElementById('mob-autoLpfHighVal'); if (el2) el2.textContent = s.autoLpfHigh + ' hz';
     }
     if (s.autoLpfLow) {
-      setEl('autoLpfLow', s.autoLpfLow); setEl('desk-autoLpfLow', s.autoLpfLow);
+      setEl('autoLpfLow', s.autoLpfLow); setEl('desk-autoLpfLow', s.autoLpfLow); setEl('mob-autoLpfLow', s.autoLpfLow);
       var el = document.getElementById('desk-autoLpfLowVal'); if (el) el.textContent = s.autoLpfLow + ' hz';
+      var el2 = document.getElementById('mob-autoLpfLowVal'); if (el2) el2.textContent = s.autoLpfLow + ' hz';
     }
     if (s.autoLpfSpeed) {
-      setEl('autoLpfSpeed', s.autoLpfSpeed); setEl('desk-autoLpfSpeed', s.autoLpfSpeed);
+      setEl('autoLpfSpeed', s.autoLpfSpeed); setEl('desk-autoLpfSpeed', s.autoLpfSpeed); setEl('mob-autoLpfSpeed', s.autoLpfSpeed);
       var el = document.getElementById('desk-autoLpfSpeedVal'); if (el) el.textContent = s.autoLpfSpeed + ' sec';
+      var el2 = document.getElementById('mob-autoLpfSpeedVal'); if (el2) el2.textContent = s.autoLpfSpeed + ' sec';
     }
 
     // Update voice slot after load
