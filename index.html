@@ -2663,6 +2663,7 @@ var rotationPhraseCount = 0;
     <span class="sheet-footer-label">Snapshot</span>
     <button class="sheet-footer-btn" onclick="snapshotExport()">⬇ Export</button>
     <button class="sheet-footer-btn" onclick="snapshotImportTrigger()">⬆ Import</button>
+    <input type="file" id="mob-snapshot-file-input" accept=".json" style="display:none;" onchange="snapshotImport(this)">
     <span class="sheet-footer-status" id="mob-snapshot-status"></span>
   </div>
 </div><!-- /#mob-sheet -->
@@ -4556,7 +4557,9 @@ function snapshotExport() {
 }
 
 function snapshotImportTrigger() {
-  var input = document.getElementById('snapshot-file-input');
+  // Use whichever file input is in the currently visible sheet
+  var input = document.getElementById('snapshot-file-input') ||
+              document.getElementById('mob-snapshot-file-input');
   if (input) input.click();
 }
 
@@ -4971,32 +4974,54 @@ function dronePlay() {
   var note = getDroneNote();
   // spawn triangle visual
   spawnDroneDrop(Math.random()*100-50, Math.random()*100-50);
-  // stop previous node with de-click ramp
+
+  // Stop previous node — monitor output until near zero, then stop
   if (droneNode) {
     var dyingNode = droneNode;
     droneNode = null;
-    // Ramp droneGain to 0 over 30ms then stop — avoids click at loop boundary
+    // Create a per-node analyser to monitor its actual output level
+    var dyingAnalyser = audio.createAnalyser();
+    dyingAnalyser.fftSize = 256;
+    dyingAnalyser.smoothingTimeConstant = 0.5;
+    // Re-route dying node through analyser before droneGain
+    try { dyingNode.disconnect(); } catch(e) {}
+    dyingNode.connect(dyingAnalyser);
+    dyingAnalyser.connect(droneGain);
+    // Ramp droneGain to 0
     droneGain.gain.cancelScheduledValues(audio.currentTime);
-    droneGain.gain.setTargetAtTime(0, audio.currentTime, 0.01);
-    setTimeout(function() {
-      try { dyingNode.stop(0); } catch(e) {}
-      // Restore gain for new note (will be set again below)
-      droneGain.gain.cancelScheduledValues(audio.currentTime);
-    }, 80);
+    droneGain.gain.setTargetAtTime(0, audio.currentTime, 0.015);
+    // Poll until RMS near zero, then stop
+    var buf = new Float32Array(dyingAnalyser.fftSize);
+    var pollId = null;
+    var maxWait = Date.now() + 500; // never wait more than 500ms
+    function pollUntilSilent() {
+      dyingAnalyser.getFloatTimeDomainData(buf);
+      var rms = 0;
+      for (var i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+      rms = Math.sqrt(rms / buf.length);
+      if (rms < 0.0005 || Date.now() > maxWait) {
+        try { dyingNode.stop(0); } catch(e) {}
+        try { dyingAnalyser.disconnect(); } catch(e) {}
+        droneGain.gain.cancelScheduledValues(audio.currentTime);
+      } else {
+        pollId = setTimeout(pollUntilSilent, 16);
+      }
+    }
+    pollUntilSilent();
   }
-  // play via drone player after de-click ramp settles
-  var dronePlayDelay = droneNode === null ? 80 : 0; // wait for ramp if stopping
+
+  // Start new node after short delay so droneGain ramp has begun
   setTimeout(function() {
     if (!droneActive) return;
     droneGain.gain.cancelScheduledValues(audio.currentTime);
-    droneGain.gain.setTargetAtTime(vol, audio.currentTime, 0.02); // fade in
+    droneGain.gain.setTargetAtTime(vol, audio.currentTime, 0.02);
     droneNode = dronePlayer.play(note, audio.currentTime, { gain: 1.0 });
     if (droneNode) {
       droneNode.disconnect();
       droneNode.connect(droneGain);
     }
     droneSetStatus(note);
-  }, dronePlayDelay);
+  }, 100);
 }
 
 function droneToggle() {
