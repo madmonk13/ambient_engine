@@ -1308,6 +1308,36 @@ function sfLoad(val) {
   });
 }
 
+
+// ── De-click helper — stops a node only when its output is near zero ──────────
+// Taps the gainNode in parallel (doesn't break existing routing)
+// node:      AudioBufferSourceNode to stop when silent
+// gainNode:  GainNode to monitor via parallel analyser tap
+// onStopped: optional callback after node is stopped
+function stopWhenSilent(node, gainNode, onStopped) {
+  var analyser = audio.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.3;
+  // Parallel tap — gainNode keeps its existing connections intact
+  gainNode.connect(analyser);
+  var buf     = new Float32Array(analyser.fftSize);
+  var maxWait = Date.now() + 800;
+  function poll() {
+    analyser.getFloatTimeDomainData(buf);
+    var rms = 0;
+    for (var i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / buf.length);
+    if (rms < 0.0005 || Date.now() > maxWait) {
+      try { node.stop(0); } catch(e) {}
+      try { analyser.disconnect(); } catch(e) {}
+      try { gainNode.disconnect(); } catch(e) {}
+      if (onStopped) onStopped();
+    } else {
+      setTimeout(poll, 16);
+    }
+  }
+  poll();
+}
 // ── Core note playback ───────────────────────────────────────────────────────
 // gainVal 0–1, all times in ms
 function playNote(noteName, gainVal, attackMs, sustainMs, releaseMs) {
@@ -1341,12 +1371,11 @@ function playNote(noteName, gainVal, attackMs, sustainMs, releaseMs) {
     node.connect(gain);  // route into our envelope chain
   }
 
-  // Cleanup after envelope fully settles — extra buffer avoids mid-ramp disconnect
-  var cleanupMs = (totalSec + 0.15) * 1000;
+  // Wait for envelope to reach zero, then stop without click
   setTimeout(function() {
-    try { if (node) node.stop(0); } catch(e) {}
-    try { gain.disconnect(); } catch(e) {}
-  }, cleanupMs);
+    if (!node) return;
+    stopWhenSilent(node, gain, null);
+  }, totalSec * 1000);
 }
 
 // ── Playback state ───────────────────────────────────────────────────────────
@@ -3502,12 +3531,12 @@ function chordPlay() {
         panner.connect(chordHpf);
         var node = chordPlayer.play(normalizeNote(note), now, { gain: 1.0 });
         if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
-        var cleanup = (atkSec + susSec + atkSec + 0.2) * 1000;
         setTimeout(function() {
-          try { if (node) node.stop(0); } catch(e) {}
-          try { g.disconnect(); } catch(e) {}
-          try { panner.disconnect(); } catch(e) {}
-        }, cleanup);
+          if (!node) return;
+          stopWhenSilent(node, g, function() {
+            try { panner.disconnect(); } catch(e) {}
+          });
+        }, (atkSec + susSec + atkSec) * 1000);
       }, delay);
     });
   } else {
@@ -3530,11 +3559,12 @@ function chordPlay() {
       panner.connect(chordHpf);
       var node = chordPlayer.play(normalizeNote(note), now, { gain: 1.0 });
       if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
-      var cleanup = (atkSec + susSec + atkSec + 0.2) * 1000;
       setTimeout(function() {
-        try { if (node) node.stop(0); } catch(e) {}
-        try { g.disconnect(); } catch(e) {}
-      }, cleanup);
+        if (!node) return;
+        stopWhenSilent(node, g, function() {
+          try { panner.disconnect(); } catch(e) {}
+        });
+      }, (atkSec + susSec + atkSec) * 1000);
     });
   }
   chordSetStatus(notes.map(function(n){ return n.replace(/\d/,''); }).join(' '));
@@ -4156,13 +4186,13 @@ function auditionPlay(player, note, vol, btnId) {
   g.connect(globalHpf);
   var node = player.play(normalizeNote(note), now, { gain: 1.0 });
   if (node) { node.disconnect(); node.connect(g); }
-  var cleanupMs = (totalSec + 0.2) * 1000;
-  auditionTimers[btnId] = setTimeout(function() {
-    try { if (node) node.stop(0); } catch(e) {}
-    try { g.disconnect(); } catch(e) {}
-    var b = document.getElementById(btnId);
-    if (b) { b.classList.remove('playing'); b.textContent = '\u25B6'; }
-  }, cleanupMs);
+  setTimeout(function() {
+    if (!node) return;
+    stopWhenSilent(node, g, function() {
+      var b = document.getElementById(btnId);
+      if (b) { b.classList.remove('playing'); b.textContent = '\u25B6'; }
+    });
+  }, totalSec * 1000);
 }
 
 function auditionMelody() {
@@ -4193,7 +4223,7 @@ function auditionChord() {
       g.connect(globalHpf);
       var n = chordPlayer.play(normalizeNote(note), now, { gain: 1.0 });
       if (n) { n.disconnect(); n.connect(g); }
-      setTimeout(function() { try { if (n) n.stop(0); } catch(e) {} try { g.disconnect(); } catch(e) {} }, (totalSec + 0.2) * 1000);
+      setTimeout(function() { if (n) stopWhenSilent(n, g, null); }, totalSec * 1000);
     }, i * 150);
   });
   auditionTimers['audition-chord'] = setTimeout(function() {
@@ -5001,34 +5031,17 @@ function dronePlay() {
     var dyingNode = droneNode;
     droneNode = null;
     // Create a per-node analyser to monitor its actual output level
-    var dyingAnalyser = audio.createAnalyser();
-    dyingAnalyser.fftSize = 256;
-    dyingAnalyser.smoothingTimeConstant = 0.5;
-    // Re-route dying node through analyser before droneGain
-    try { dyingNode.disconnect(); } catch(e) {}
-    dyingNode.connect(dyingAnalyser);
-    dyingAnalyser.connect(droneGain);
-    // Ramp droneGain to 0
+    // Ramp droneGain down then stop when silent
     droneGain.gain.cancelScheduledValues(audio.currentTime);
     droneGain.gain.setTargetAtTime(0, audio.currentTime, 0.015);
-    // Poll until RMS near zero, then stop
-    var buf = new Float32Array(dyingAnalyser.fftSize);
-    var pollId = null;
-    var maxWait = Date.now() + 500; // never wait more than 500ms
-    function pollUntilSilent() {
-      dyingAnalyser.getFloatTimeDomainData(buf);
-      var rms = 0;
-      for (var i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
-      rms = Math.sqrt(rms / buf.length);
-      if (rms < 0.0005 || Date.now() > maxWait) {
-        try { dyingNode.stop(0); } catch(e) {}
-        try { dyingAnalyser.disconnect(); } catch(e) {}
-        droneGain.gain.cancelScheduledValues(audio.currentTime);
-      } else {
-        pollId = setTimeout(pollUntilSilent, 16);
-      }
-    }
-    pollUntilSilent();
+    // Use a per-node gain to monitor the dying node independently
+    var dyingGain = audio.createGain();
+    dyingGain.gain.value = 1.0;
+    try { dyingNode.disconnect(); } catch(e) {}
+    dyingNode.connect(dyingGain);
+    stopWhenSilent(dyingNode, dyingGain, function() {
+      droneGain.gain.cancelScheduledValues(audio.currentTime);
+    });
   }
 
   // Start new node after short delay so droneGain ramp has begun
