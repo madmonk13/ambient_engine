@@ -1365,7 +1365,9 @@ function playNote(noteName, gainVal, attackMs, sustainMs, releaseMs) {
   // Chain: sfNode → gain → melodyPanner → globalHpf → globalLpf → masterOut
   gain.connect(melodyPanner);
 
-  var node = sfPlayer.play(normalizeNote(noteName), now, { duration: totalSec });
+  // Pass a very long duration so soundfont-player never triggers its own release —
+  // our gain envelope is the sole amplitude controller. stopWhenSilent handles cleanup.
+  var node = sfPlayer.play(normalizeNote(noteName), now, { duration: totalSec * 4 });
   if (node) {
     node.disconnect();   // remove sfPlayer's auto-connection to destination
     node.connect(gain);  // route into our envelope chain
