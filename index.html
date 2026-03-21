@@ -1473,6 +1473,42 @@ function spawnDroneDrop(x, y) {
 }
 
 // ── Main loop ────────────────────────────────────────────────────────────────
+
+// ── Interval Bias ─────────────────────────────────────────────────────────────
+var lastNoteIdx = -1; // index into the melody tone array, -1 = unset
+
+function pickBiasedNote(tones) {
+  var bias = parseInt(document.getElementById('intervalBias').value) || 0;
+  if (bias === 0 || lastNoteIdx < 0 || tones.length <= 1) {
+    // Random — no bias
+    var idx = Math.floor(Math.random() * tones.length);
+    lastNoteIdx = idx;
+    return tones[idx];
+  }
+  // Build weight array — exponential falloff beyond bias steps
+  var weights = [];
+  var total   = 0;
+  for (var i = 0; i < tones.length; i++) {
+    var dist   = Math.abs(i - lastNoteIdx);
+    var weight = dist <= bias
+      ? 1.0                          // within bias — full weight
+      : Math.pow(0.25, dist - bias); // beyond bias — rapid falloff
+    weights.push(weight);
+    total += weight;
+  }
+  // Weighted random pick
+  var r   = Math.random() * total;
+  var cum = 0;
+  for (var j = 0; j < weights.length; j++) {
+    cum += weights[j];
+    if (r <= cum) {
+      lastNoteIdx = j;
+      return tones[j];
+    }
+  }
+  lastNoteIdx = tones.length - 1;
+  return tones[lastNoteIdx];
+}
 function schedulePhrase() {
   if (!isPlaying) return;
 
@@ -1497,7 +1533,7 @@ function schedulePhrase() {
     var phraseLen = Math.floor(Math.random() * Math.min(tones.melody.length, 6)) + 1;
     var phrase = [];
     for (var i = 0; i < phraseLen; i++) {
-      phrase.push(tones.melody[Math.floor(Math.random() * tones.melody.length)]);
+      phrase.push(pickBiasedNote(tones.melody));
     }
 
     // schedule melody notes
@@ -1695,6 +1731,7 @@ function startPlay() {
 
 function stopPlay() {
   isPlaying = false;
+  lastNoteIdx = -1;
   loopTimers.forEach(clearTimeout);
   loopTimers = [];
   document.getElementById('playBtn').textContent = 'Play';
@@ -1960,6 +1997,18 @@ var rotationPhraseCount = 0;
           <select id="desk-attackSel" onchange="syncFromDesk('attackSel','desk-attackSel');attackMs=parseInt(this.value);">
             <option value="10">Crisp</option>
             <option value="400" selected>Soft</option>
+          </select>
+        </div>
+        <div class="desk-ctrl">
+          <label>Interval Bias</label>
+          <select id="desk-intervalBias" onchange="syncFromDesk('intervalBias','desk-intervalBias')">
+            <option value="0" selected>Random</option>
+            <option value="2">2nd</option>
+            <option value="3">3rd</option>
+            <option value="4">4th</option>
+            <option value="5">5th</option>
+            <option value="6">6th</option>
+            <option value="7">7th</option>
           </select>
         </div>
       </div>
@@ -2414,6 +2463,18 @@ var rotationPhraseCount = 0;
         </div>
       </div>
       <div class="mob-ctrl">
+        <label>Interval Bias</label>
+        <select id="mob-intervalBias" onchange="syncFromMob('intervalBias','mob-intervalBias')">
+            <option value="0" selected>Random</option>
+            <option value="2">2nd</option>
+            <option value="3">3rd</option>
+            <option value="4">4th</option>
+            <option value="5">5th</option>
+            <option value="6">6th</option>
+            <option value="7">7th</option>
+        </select>
+      </div>
+      <div class="mob-ctrl">
         <label>Volume</label>
         <input type="range" id="mob-volume" min="0" max="100" value="85"
                oninput="syncFromMob('volume','mob-volume')">
@@ -2827,6 +2888,15 @@ var rotationPhraseCount = 0;
       <div class="ctrl-row">
         <div class="ctrl">
           <label>Attack</label>
+          <select id="intervalBias">
+            <option value="0" selected>Random</option>
+            <option value="2">2nd</option>
+            <option value="3">3rd</option>
+            <option value="4">4th</option>
+            <option value="5">5th</option>
+            <option value="6">6th</option>
+            <option value="7">7th</option>
+          </select>
           <select id="attackSel" onchange="attackMs=parseInt(this.value);">
             <option value="10">Crisp</option>
             <option value="400" selected>Soft</option>
@@ -3886,6 +3956,7 @@ function settingsSave() {
       activity:      document.getElementById('activity').value,
       voices:        document.getElementById('voices').value,
       attackSel:     document.getElementById('attackSel').value,
+      intervalBias:  document.getElementById('intervalBias').value,
       volume:        document.getElementById('volume').value,
       // Mix
       lpf:           document.getElementById('desk-lpf').value,
@@ -3989,6 +4060,7 @@ function settingsLoad(injected) {
     if (s.activity)  { setEl('activity', s.activity);   setEl('desk-activity', s.activity);   setEl('mob-activity', s.activity); }
     if (s.voices)    { setEl('voices', s.voices);        setEl('desk-voices', s.voices);        setEl('mob-voices', s.voices); }
     if (s.attackSel) { setEl('attackSel', s.attackSel);  setEl('desk-attackSel', s.attackSel);  setEl('mob-attackSel', s.attackSel); attackMs = parseInt(s.attackSel); }
+    if (s.intervalBias) { setEl('intervalBias', s.intervalBias); setEl('desk-intervalBias', s.intervalBias); setEl('mob-intervalBias', s.intervalBias); }
     if (s.volume)    {
       setEl('volume', s.volume);
       setEl('desk-volume', s.volume);
@@ -4547,6 +4619,7 @@ function snapshotExport() {
       activity:      document.getElementById('activity').value,
       voices:        document.getElementById('voices').value,
       attackSel:     document.getElementById('attackSel').value,
+      intervalBias:  document.getElementById('intervalBias').value,
       volume:        document.getElementById('volume').value,
       // Mix
       lpf:           document.getElementById('desk-lpf').value,
