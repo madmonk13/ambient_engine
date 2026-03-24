@@ -1330,7 +1330,8 @@ function stopWhenSilent(node, gainNode, onStopped) {
     if (rms < 0.0005 || Date.now() > maxWait) {
       try { node.stop(0); } catch(e) {}
       try { analyser.disconnect(); } catch(e) {}
-      try { gainNode.disconnect(); } catch(e) {}
+      // DO NOT disconnect gainNode — abrupt disconnect causes click even at zero gain.
+      // gainNode will be garbage collected naturally once node is stopped.
       if (onStopped) onStopped();
     } else {
       setTimeout(poll, 16);
@@ -3675,9 +3676,7 @@ function chordPlay() {
         if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
         setTimeout(function() {
           if (!node) return;
-          stopWhenSilent(node, g, function() {
-            try { panner.disconnect(); } catch(e) {}
-          });
+          stopWhenSilent(node, g, null);
         }, (atkSec + susSec + atkSec) * 1000);
       }, delay);
     });
@@ -3703,9 +3702,7 @@ function chordPlay() {
       if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
       setTimeout(function() {
         if (!node) return;
-        stopWhenSilent(node, g, function() {
-          try { panner.disconnect(); } catch(e) {}
-        });
+        stopWhenSilent(node, g, null);
       }, (atkSec + susSec + atkSec) * 1000);
     });
   }
@@ -4334,7 +4331,7 @@ function auditionPlay(player, note, vol, btnId) {
     if (!node) return;
     stopWhenSilent(node, g, function() {
       var b = document.getElementById(btnId);
-      if (b) { b.classList.remove('playing'); b.textContent = '\u25B6'; }
+      if (b) { b.classList.remove('playing'); b.textContent = '▶'; }
     });
   }, totalSec * 1000);
 }
