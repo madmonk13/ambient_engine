@@ -1201,8 +1201,8 @@ globalHpf.Q.value = 0.5;
 globalHpf.connect(globalLpf);
 globalLpf.connect(masterOut);
 
-// Now safe to connect melodyPanner → globalHpf
-melodyPanner.connect(globalHpf);
+// melodyPanner → chorusInputGain (chorus insert defined later; connection made there)
+// melodyPanner.connect(globalHpf) is deferred to the chorus script block below
 
 // ── Delay (feedback loop, shared across all notes) ───────────────────────────
 var delayNode    = audio.createDelay(4.0);   // max 4s delay time
@@ -2148,6 +2148,40 @@ var rotationPhraseCount = 0;
         <input type="range" id="melody-pan-speed" min="5" max="120" value="30" step="1"
                oninput="document.getElementById('melody-pan-speed-val').textContent=this.value+'s';">
       </div>
+      <div class="desk-sect">Chorus</div>
+      <div class="desk-row" style="align-items:center;">
+        <button class="desk-btn" id="chorus-toggle" onclick="chorusToggle()">Off</button>
+        <span class="desk-info desk-info-inline" style="font-size:10px;opacity:.5;">low delay = flanger · high = chorus</span>
+      </div>
+      <div class="desk-row">
+        <div class="desk-ctrl">
+          <label>Rate <span class="val-label" id="chorus-rate-val">0.5 Hz</span></label>
+          <input type="range" id="chorus-rate" min="0.1" max="5" value="0.5" step="0.1"
+                 oninput="document.getElementById('chorus-rate-val').textContent=parseFloat(this.value).toFixed(1)+' Hz';">
+        </div>
+        <div class="desk-ctrl">
+          <label>Depth <span class="val-label" id="chorus-depth-val">5 ms</span></label>
+          <input type="range" id="chorus-depth" min="0" max="15" value="5" step="0.5"
+                 oninput="document.getElementById('chorus-depth-val').textContent=parseFloat(this.value).toFixed(1)+' ms';">
+        </div>
+      </div>
+      <div class="desk-row">
+        <div class="desk-ctrl">
+          <label>Delay <span class="val-label" id="chorus-delay-val">15 ms</span></label>
+          <input type="range" id="chorus-delay" min="1" max="30" value="15" step="0.5"
+                 oninput="document.getElementById('chorus-delay-val').textContent=parseFloat(this.value).toFixed(1)+' ms';">
+        </div>
+        <div class="desk-ctrl">
+          <label>Feedback <span class="val-label" id="chorus-feedback-val">0%</span></label>
+          <input type="range" id="chorus-feedback" min="0" max="90" value="0" step="1"
+                 oninput="document.getElementById('chorus-feedback-val').textContent=this.value+'%';if(chorusActive)setChorusFeedback(this.value/100);">
+        </div>
+      </div>
+      <div class="desk-ctrl">
+        <label>Mix <span class="val-label" id="chorus-mix-val">50%</span></label>
+        <input type="range" id="chorus-mix" min="0" max="100" value="50" step="1"
+               oninput="document.getElementById('chorus-mix-val').textContent=this.value+'%';if(chorusActive)setChorusMix(this.value/100);">
+      </div>
     </div>
 
     <!-- CHARACTER -->
@@ -2340,6 +2374,7 @@ var rotationPhraseCount = 0;
         <div class="desk-ctrl">
           <label>Retrigger every</label>
           <select id="chord-interval">
+            <option value="2">2 phrases</option>
             <option value="4">4 phrases</option>
             <option value="8" selected>8 phrases</option>
             <option value="16">16 phrases</option>
@@ -2467,10 +2502,11 @@ var rotationPhraseCount = 0;
         <div class="desk-ctrl">
           <label>Retrigger every</label>
           <select id="drone-interval">
+            <option value="2">2 notes</option>
+            <option value="4">4 notes</option>
             <option value="8">8 notes</option>
             <option value="16" selected>16 notes</option>
             <option value="32">32 notes</option>
-            <option value="64">64 notes</option>
           </select>
         </div>
       </div>
@@ -2617,6 +2653,40 @@ var rotationPhraseCount = 0;
         <label>Speed <span class="val-label" id="melody-pan-speed-val">30s</span></label>
         <input type="range" id="melody-pan-speed" min="5" max="120" value="30" step="1"
                oninput="document.getElementById('melody-pan-speed-val').textContent=this.value+'s';">
+      </div>
+      <div class="mob-sect-head">Chorus</div>
+      <div class="mob-ctrl-flex">
+        <button class="mob-btn" id="mob-chorus-toggle" onclick="chorusToggle()">Off</button>
+        <span style="font-size:10px;opacity:.45;align-self:center;">low delay = flanger · high = chorus</span>
+      </div>
+      <div class="mob-ctrl-row">
+        <div class="mob-ctrl">
+          <label>Rate <span class="val-label" id="mob-chorus-rate-val">0.5 Hz</span></label>
+          <input type="range" id="mob-chorus-rate" min="0.1" max="5" value="0.5" step="0.1"
+                 oninput="document.getElementById('mob-chorus-rate-val').textContent=parseFloat(this.value).toFixed(1)+' Hz';document.getElementById('chorus-rate').value=this.value;">
+        </div>
+        <div class="mob-ctrl">
+          <label>Depth <span class="val-label" id="mob-chorus-depth-val">5 ms</span></label>
+          <input type="range" id="mob-chorus-depth" min="0" max="15" value="5" step="0.5"
+                 oninput="document.getElementById('mob-chorus-depth-val').textContent=parseFloat(this.value).toFixed(1)+' ms';document.getElementById('chorus-depth').value=this.value;">
+        </div>
+      </div>
+      <div class="mob-ctrl-row">
+        <div class="mob-ctrl">
+          <label>Delay <span class="val-label" id="mob-chorus-delay-val">15 ms</span></label>
+          <input type="range" id="mob-chorus-delay" min="1" max="30" value="15" step="0.5"
+                 oninput="document.getElementById('mob-chorus-delay-val').textContent=parseFloat(this.value).toFixed(1)+' ms';document.getElementById('chorus-delay').value=this.value;">
+        </div>
+        <div class="mob-ctrl">
+          <label>Feedback <span class="val-label" id="mob-chorus-feedback-val">0%</span></label>
+          <input type="range" id="mob-chorus-feedback" min="0" max="90" value="0" step="1"
+                 oninput="document.getElementById('mob-chorus-feedback-val').textContent=this.value+'%';document.getElementById('chorus-feedback').value=this.value;if(chorusActive)setChorusFeedback(this.value/100);">
+        </div>
+      </div>
+      <div class="mob-ctrl">
+        <label>Mix <span class="val-label" id="mob-chorus-mix-val">50%</span></label>
+        <input type="range" id="mob-chorus-mix" min="0" max="100" value="50" step="1"
+               oninput="document.getElementById('mob-chorus-mix-val').textContent=this.value+'%';document.getElementById('chorus-mix').value=this.value;if(chorusActive)setChorusMix(this.value/100);">
       </div>
     </div>
 
@@ -2778,6 +2848,7 @@ var rotationPhraseCount = 0;
       <div class="mob-ctrl">
         <label>Retrigger every</label>
         <select id="mob-chord-interval" onchange="document.getElementById('chord-interval').value=this.value;">
+          <option value="2">2 phrases</option>
           <option value="4">4 phrases</option>
           <option value="8" selected>8 phrases</option>
           <option value="16">16 phrases</option>
@@ -2888,10 +2959,11 @@ var rotationPhraseCount = 0;
       <div class="mob-ctrl">
         <label>Retrigger every</label>
         <select id="mob-drone-interval" onchange="document.getElementById('drone-interval').value=this.value;">
+          <option value="2">2 notes</option>
+          <option value="4">4 notes</option>
           <option value="8">8 notes</option>
           <option value="16" selected>16 notes</option>
           <option value="32">32 notes</option>
-          <option value="64">64 notes</option>
         </select>
       </div>
       <div class="mob-ctrl">
@@ -3736,24 +3808,19 @@ function chordPlay() {
   var notes  = getChordNotes();
   if (!notes.length) return;
 
-  // Restore chordGain to full before new notes (each note has its own gain node)
-  setTimeout(function() {
-    chordGain.gain.cancelScheduledValues(audio.currentTime);
-    chordGain.gain.setTargetAtTime(1.0, audio.currentTime, 0.01);
-  }, 60);
+  // Ensure chordGain master is always at 1.0 — individual note gains handle ADSR
+  chordGain.gain.cancelScheduledValues(audio.currentTime);
+  chordGain.gain.value = 1.0;
 
-  // Stop previous nodes with de-click ramp
-  var dyingChordNodes = chordNodes.slice();
+  // Stop previous notes by fading each note's own gain node, then stopping its source.
+  // We no longer touch chordGain here — new notes route through it cleanly at 1.0.
+  var dyingChordObjs = chordNodes.slice();
   chordNodes = [];
-  if (dyingChordNodes.length) {
-    // Quick gain ramp on chordGain then stop all dying nodes
-    chordGain.gain.cancelScheduledValues(audio.currentTime);
-    chordGain.gain.setTargetAtTime(0, audio.currentTime, 0.008);
-    setTimeout(function() {
-      dyingChordNodes.forEach(function(n) { try { n.stop(0); } catch(e) {} });
-      chordGain.gain.cancelScheduledValues(audio.currentTime);
-    }, 60);
-  }
+  dyingChordObjs.forEach(function(obj) {
+    obj.gain.gain.cancelScheduledValues(audio.currentTime);
+    obj.gain.gain.setTargetAtTime(0, audio.currentTime, 0.008);
+    setTimeout(function() { try { obj.source.stop(0); } catch(e) {} }, 60);
+  });
 
   // Determine play order
   var ordered;
@@ -3801,7 +3868,7 @@ function chordPlay() {
         g.connect(panner);
         panner.connect(chordGain);
         var node = playManagedSoundfontNode(chordPlayer, note, now, atkSec + susSec + atkSec + 8);
-        if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
+        if (node) { node.disconnect(); node.connect(g); chordNodes.push({source: node, gain: g}); }
         setTimeout(function() {
           if (!node) return;
           stopWhenSilent(node, g, null);
@@ -3827,7 +3894,7 @@ function chordPlay() {
       g.connect(panner);
       panner.connect(chordGain);
       var node = playManagedSoundfontNode(chordPlayer, note, now, atkSec + susSec + atkSec + 8);
-      if (node) { node.disconnect(); node.connect(g); chordNodes.push(node); }
+      if (node) { node.disconnect(); node.connect(g); chordNodes.push({source: node, gain: g}); }
       setTimeout(function() {
         if (!node) return;
         stopWhenSilent(node, g, null);
@@ -3857,15 +3924,13 @@ function chordToggle() {
     ['desk-chord-power','mob-chord-power'].forEach(function(id) {
       var el = document.getElementById(id); if (el) el.classList.remove('on');
     });
-    var dying = chordNodes.slice();
+    var dyingObjs = chordNodes.slice();
     chordNodes = [];
-    chordGain.gain.cancelScheduledValues(audio.currentTime);
-    chordGain.gain.setTargetAtTime(0, audio.currentTime, 0.008);
-    setTimeout(function() {
-      dying.forEach(function(n) { try { n.stop(0); } catch(e) {} });
-      chordGain.gain.cancelScheduledValues(audio.currentTime);
-      chordGain.gain.value = 1.0;
-    }, 60);
+    dyingObjs.forEach(function(obj) {
+      obj.gain.gain.cancelScheduledValues(audio.currentTime);
+      obj.gain.gain.setTargetAtTime(0, audio.currentTime, 0.008);
+      setTimeout(function() { try { obj.source.stop(0); } catch(e) {} }, 60);
+    });
     chordSetStatus('');
   }
 }
@@ -4193,6 +4258,13 @@ function settingsSave() {
       autoLpfHigh:  document.getElementById('autoLpfHigh').value,
       autoLpfLow:   document.getElementById('autoLpfLow').value,
       autoLpfSpeed: document.getElementById('autoLpfSpeed').value,
+      // Chorus
+      chorusActive:   chorusActive,
+      chorusRate:     document.getElementById('chorus-rate').value,
+      chorusDepth:    document.getElementById('chorus-depth').value,
+      chorusDelay:    document.getElementById('chorus-delay').value,
+      chorusFeedback: document.getElementById('chorus-feedback').value,
+      chorusMix:      document.getElementById('chorus-mix').value,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state));
   } catch(e) {
@@ -4409,6 +4481,39 @@ function settingsLoad(injected) {
       setEl('autoLpfSpeed', s.autoLpfSpeed); setEl('desk-autoLpfSpeed', s.autoLpfSpeed); setEl('mob-autoLpfSpeed', s.autoLpfSpeed);
       var el = document.getElementById('desk-autoLpfSpeedVal'); if (el) el.textContent = s.autoLpfSpeed + ' sec';
       var el2 = document.getElementById('mob-autoLpfSpeedVal'); if (el2) el2.textContent = s.autoLpfSpeed + ' sec';
+    }
+
+    // Chorus
+    if (s.chorusRate !== undefined) {
+      setEl('chorus-rate', s.chorusRate); setEl('mob-chorus-rate', s.chorusRate);
+      var el = document.getElementById('chorus-rate-val'); if (el) el.textContent = parseFloat(s.chorusRate).toFixed(1) + ' Hz';
+      var el2 = document.getElementById('mob-chorus-rate-val'); if (el2) el2.textContent = parseFloat(s.chorusRate).toFixed(1) + ' Hz';
+    }
+    if (s.chorusDepth !== undefined) {
+      setEl('chorus-depth', s.chorusDepth); setEl('mob-chorus-depth', s.chorusDepth);
+      var el = document.getElementById('chorus-depth-val'); if (el) el.textContent = parseFloat(s.chorusDepth).toFixed(1) + ' ms';
+      var el2 = document.getElementById('mob-chorus-depth-val'); if (el2) el2.textContent = parseFloat(s.chorusDepth).toFixed(1) + ' ms';
+    }
+    if (s.chorusDelay !== undefined) {
+      setEl('chorus-delay', s.chorusDelay); setEl('mob-chorus-delay', s.chorusDelay);
+      var el = document.getElementById('chorus-delay-val'); if (el) el.textContent = parseFloat(s.chorusDelay).toFixed(1) + ' ms';
+      var el2 = document.getElementById('mob-chorus-delay-val'); if (el2) el2.textContent = parseFloat(s.chorusDelay).toFixed(1) + ' ms';
+    }
+    if (s.chorusFeedback !== undefined) {
+      setEl('chorus-feedback', s.chorusFeedback); setEl('mob-chorus-feedback', s.chorusFeedback);
+      var el = document.getElementById('chorus-feedback-val'); if (el) el.textContent = s.chorusFeedback + '%';
+      var el2 = document.getElementById('mob-chorus-feedback-val'); if (el2) el2.textContent = s.chorusFeedback + '%';
+    }
+    if (s.chorusMix !== undefined) {
+      setEl('chorus-mix', s.chorusMix); setEl('mob-chorus-mix', s.chorusMix);
+      var el = document.getElementById('chorus-mix-val'); if (el) el.textContent = s.chorusMix + '%';
+      var el2 = document.getElementById('mob-chorus-mix-val'); if (el2) el2.textContent = s.chorusMix + '%';
+    }
+    if (s.chorusActive) {
+      // Re-activate chorus after all slider values are restored
+      setTimeout(function() {
+        if (!chorusActive) chorusToggle();
+      }, 0);
     }
 
     // Update voice slot after load
@@ -5319,9 +5424,7 @@ function dronePlay() {
     dyingGain.gain.value = 1.0;
     try { dyingNode.disconnect(); } catch(e) {}
     dyingNode.connect(dyingGain);
-    stopWhenSilent(dyingNode, dyingGain, function() {
-      droneGain.gain.cancelScheduledValues(audio.currentTime);
-    });
+    stopWhenSilent(dyingNode, dyingGain, null);
   }
 
   // Start new node after short delay so droneGain ramp has begun
@@ -5407,6 +5510,103 @@ applyStep = function(step) {
 // Load default instrument on startup (silent, just pre-cache)
 droneLoadInstrument(document.getElementById('drone-instrument').value || 'pad_2_warm|FluidR3_GM');
 
+</script>
+
+
+<script>
+/* ── Chorus / Flanger Insert ──────────────────────────────────────────────── */
+// Signal path: melodyPanner → chorusInputGain → chorusDryGain  → globalHpf
+//                                              → chorusDelay   → chorusWetGain → globalHpf
+//              feedback loop: chorusDelay → chorusFbGain → chorusDelay
+
+var chorusActive       = false;
+var chorusLfoRafId     = null;
+var chorusLfoStartTime = null;
+
+var chorusInputGain = audio.createGain();
+chorusInputGain.gain.value = 1.0;
+
+var chorusDryGain = audio.createGain();
+chorusDryGain.gain.value = 1.0;   // full dry until enabled
+
+var chorusWetGain = audio.createGain();
+chorusWetGain.gain.value = 0.0;   // silent until enabled
+
+var chorusDelay = audio.createDelay(0.05); // max 50ms covers flanger + chorus
+chorusDelay.delayTime.value = 0.015;       // 15ms default (chorus territory)
+
+var chorusFbGain = audio.createGain();
+chorusFbGain.gain.value = 0.0;    // no feedback until enabled
+
+// Wire up: input → dry → globalHpf
+chorusInputGain.connect(chorusDryGain);
+chorusDryGain.connect(globalHpf);
+
+// input → delay → wet → globalHpf
+chorusInputGain.connect(chorusDelay);
+chorusDelay.connect(chorusWetGain);
+chorusWetGain.connect(globalHpf);
+
+// feedback loop
+chorusDelay.connect(chorusFbGain);
+chorusFbGain.connect(chorusDelay);
+
+// Route melodyPanner through the chorus insert instead of directly to globalHpf
+melodyPanner.connect(chorusInputGain);
+
+// ── LFO ──────────────────────────────────────────────────────────────────────
+function chorusLfoTick() {
+  if (!chorusLfoRafId) return;
+  var rate  = parseFloat(document.getElementById('chorus-rate').value  || 0.5);
+  var depth = parseFloat(document.getElementById('chorus-depth').value || 5)  / 1000; // ms → s
+  var base  = parseFloat(document.getElementById('chorus-delay').value || 15) / 1000; // ms → s
+  var elapsed = (Date.now() - chorusLfoStartTime) / 1000;
+  var sine    = Math.sin(elapsed * rate * Math.PI * 2); // -1..1
+  var dt      = Math.max(0.0005, base + sine * depth);
+  chorusDelay.delayTime.setTargetAtTime(dt, audio.currentTime, 0.005);
+  chorusLfoRafId = requestAnimationFrame(chorusLfoTick);
+}
+
+function chorusLfoStart() {
+  if (chorusLfoRafId) return;
+  chorusLfoStartTime = Date.now();
+  chorusLfoRafId = requestAnimationFrame(chorusLfoTick);
+}
+
+function chorusLfoStop() {
+  if (chorusLfoRafId) { cancelAnimationFrame(chorusLfoRafId); chorusLfoRafId = null; }
+}
+
+// ── Parameter setters ─────────────────────────────────────────────────────────
+function setChorusMix(val) {        // val 0..1
+  chorusWetGain.gain.setTargetAtTime(val,       audio.currentTime, 0.02);
+  chorusDryGain.gain.setTargetAtTime(1 - val,   audio.currentTime, 0.02);
+}
+function setChorusFeedback(val) {   // val 0..1
+  chorusFbGain.gain.setTargetAtTime(Math.min(val, 0.9), audio.currentTime, 0.02);
+}
+
+// ── Toggle ────────────────────────────────────────────────────────────────────
+function chorusToggle() {
+  chorusActive = !chorusActive;
+  var btn    = document.getElementById('chorus-toggle');
+  var mobBtn = document.getElementById('mob-chorus-toggle');
+  if (chorusActive) {
+    if (btn)    { btn.textContent    = 'On'; btn.classList.add('on'); }
+    if (mobBtn) { mobBtn.textContent = 'On'; mobBtn.classList.add('on'); }
+    var mix = parseFloat(document.getElementById('chorus-mix').value) / 100;
+    var fb  = parseFloat(document.getElementById('chorus-feedback').value) / 100;
+    setChorusMix(mix);
+    setChorusFeedback(fb);
+    chorusLfoStart();
+  } else {
+    if (btn)    { btn.textContent    = 'Off'; btn.classList.remove('on'); }
+    if (mobBtn) { mobBtn.textContent = 'Off'; mobBtn.classList.remove('on'); }
+    setChorusMix(0);
+    setChorusFeedback(0);
+    chorusLfoStop();
+  }
+}
 </script>
 
 </body>
