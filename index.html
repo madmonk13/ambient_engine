@@ -585,6 +585,59 @@ body::before {
   display: block;
 }
 
+/* Album promotions on idle screen */
+.idle-albums {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 18px 0 16px;
+  pointer-events: auto;
+}
+.idle-album {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.35s ease;
+}
+.idle-album:hover { transform: scale(1.05); }
+.idle-album-art {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  opacity: 0.82;
+  transition: opacity 0.3s ease, box-shadow 0.3s ease;
+}
+.idle-album:hover .idle-album-art {
+  opacity: 1;
+  box-shadow: 0 8px 40px rgba(130,90,210,0.45), 0 0 0 1px rgba(200,170,255,0.18);
+}
+.idle-album-title {
+  font-size: 13px;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.68);
+  font-family: 'Georgia', serif;
+  text-align: center;
+  transition: color 0.2s;
+  max-width: 140px;
+  line-height: 1.4;
+}
+.idle-album:hover .idle-album-title { color: rgba(200,170,255,0.95); }
+.idle-album-meta {
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  text-align: center;
+}
+
 
 /* Timer in toolbar */
 #desk-toolbar-timer {
@@ -2037,8 +2090,20 @@ var rotationPhraseCount = 0;
 
 <div id="idle-msg">
   <span class="idle-line1">ambient engine.</span>
-  <span class="idle-line2">press play to begin</span>
-  <span class="idle-line3">Press Settings to Configure.</span>
+  <span class="idle-line2">now available on bandcamp</span>
+  <div class="idle-albums">
+    <a href="https://madmonk13.bandcamp.com/album/one" target="_blank" class="idle-album">
+      <img src="https://f4.bcbits.com/img/a1896686110_5.jpg" class="idle-album-art" alt="One">
+      <span class="idle-album-title">One</span>
+      <span class="idle-album-meta">9 tracks · June 2026</span>
+    </a>
+    <a href="https://madmonk13.bandcamp.com/album/sun-temple-moon-temple" target="_blank" class="idle-album">
+      <img src="https://f4.bcbits.com/img/a3472774340_5.jpg" class="idle-album-art" alt="Sun Temple / Moon Temple">
+      <span class="idle-album-title">Sun Temple / Moon Temple</span>
+      <span class="idle-album-meta">2 tracks · March 2026</span>
+    </a>
+  </div>
+  <span class="idle-line3">press play to begin · settings to configure</span>
 </div>
 
 <!-- ═══════════════════ DESKTOP BOTTOM TOOLBAR + SHEET ═══════════════════ -->
