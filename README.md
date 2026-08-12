@@ -1,5 +1,7 @@
 # Ambient Engine
 
+**[Live Demo](https://madmonk13.github.io/ambient_engine/)**
+
 A generative ambient music instrument that runs entirely in the browser. No installation required — open the file, press Play, and it begins composing.
 
 ---
