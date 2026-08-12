@@ -5674,5 +5674,14 @@ function chorusToggle() {
 }
 </script>
 
+<script>
+// ── Default state: enable Drone and Chord on first load ───────────────────────
+window.addEventListener('load', function() {
+  // Only apply defaults if no saved snapshot has already activated them
+  if (!droneActive)  droneToggle();
+  if (!chordActive) chordToggle();
+});
+</script>
+
 </body>
 </html>
