@@ -47,16 +47,6 @@ All three voices pass through a shared effects chain — reverb, delay, low pass
 
 ## How to Use
 
-### Desktop (recommended)
-Open `ambient-engine.html` in a modern browser. For recording with the Save As dialog, serve locally:
-
-```bash
-cd /path/to/file
-python3 -m http.server 8080
-```
-
-Then open `http://localhost:8080/ambient-engine.html`.
-
 ### Basic workflow
 1. Open Settings and choose an instrument, key, and scale in the **Sound** tab
 2. Press **Play** — music begins immediately
